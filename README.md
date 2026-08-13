@@ -1,5 +1,7 @@
 # pi-memento
 
+English | [中文](./README.zh-CN.md)
+
 > Controlled recall for [pi](https://pi.dev) — a research-memory extension for
 > agents that run many experiments and must not let stale notes pollute the
 > next decision.
