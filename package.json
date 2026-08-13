@@ -1,10 +1,18 @@
 {
   "name": "pi-memento",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Controlled recall for pi: a research-memory extension with layered experiment tracking (runs/contrasts/hypotheses ledgers), tracker scaffolding, validation, and an on-demand methodology guide.",
   "type": "module",
   "license": "MIT",
   "author": "waterdrop26651",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/waterdrop26651/pi-memento.git"
+  },
+  "homepage": "https://github.com/waterdrop26651/pi-memento#readme",
+  "bugs": {
+    "url": "https://github.com/waterdrop26651/pi-memento/issues"
+  },
   "keywords": [
     "pi-package",
     "pi",
@@ -31,6 +39,7 @@
   "pi": {
     "extensions": [
       "./extensions"
-    ]
+    ],
+    "image": "https://raw.githubusercontent.com/waterdrop26651/pi-memento/main/assets/banner.jpg"
   }
 }
