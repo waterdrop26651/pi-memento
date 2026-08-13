@@ -1,7 +1,7 @@
 {
   "name": "pi-memento",
   "version": "1.0.1",
-  "description": "Controlled recall for pi: a research-memory extension with layered experiment tracking (runs/contrasts/hypotheses ledgers), tracker scaffolding, validation, and an on-demand methodology guide.",
+  "description": "Research memory extension for the pi coding agent: layered experiment tracking (runs/contrasts/hypotheses ledgers), tracker scaffolding, validation, cold-memory archive recall, and an on-demand methodology guide for LLM agents.",
   "type": "module",
   "license": "MIT",
   "author": "waterdrop26651",
@@ -17,11 +17,19 @@
     "pi-package",
     "pi",
     "pi-extension",
+    "pi-coding-agent",
     "agent-memory",
+    "memory",
+    "research-memory",
+    "controlled-recall",
     "experiment-tracking",
+    "experiment-tracker",
     "research",
     "hypotheses",
-    "ablation"
+    "ablation",
+    "llm-agents",
+    "machine-learning",
+    "csv"
   ],
   "engines": {
     "node": ">=20"

@@ -2,9 +2,14 @@
 
 English | [中文](./README.zh-CN.md)
 
-> Controlled recall for [pi](https://pi.dev) — a research-memory extension for
-> agents that run many experiments and must not let stale notes pollute the
-> next decision.
+[![npm](https://img.shields.io/npm/v/pi-memento)](https://www.npmjs.com/package/pi-memento) [![pi-package](https://img.shields.io/badge/pi-package-pi.dev%2Fpackages-blue)](https://pi.dev/packages) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
+**Research memory and experiment tracking for the [pi coding agent](https://pi.dev).**
+`pi-memento` gives LLM agents a layered external memory for ML research: factual
+run ledgers (`runs.csv`), controlled contrasts with predictions (`contrasts.csv`),
+and hypothesis ledgers with update rules (`hypotheses.md`) — plus cold-memory
+archive recall so stale notes never pollute the next decision. Install with
+`pi install npm:pi-memento`.
 
 A pi-native port of [Memento-skill](https://github.com/waterdrop26651/Memento-skill)
 (MIT, by waterdrop26651), rebuilt as a pure pi **extension**: scaffolding

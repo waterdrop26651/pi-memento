@@ -2,7 +2,12 @@
 
 [English](./README.md) | 中文
 
-> 为 [pi](https://pi.dev) 打造的受控召回系统 —— 面向"跑很多实验、又不能让陈旧笔记污染下一次决策"的 agent 的研究记忆扩展。
+[![npm](https://img.shields.io/npm/v/pi-memento)](https://www.npmjs.com/package/pi-memento) [![pi-package](https://img.shields.io/badge/pi-package-pi.dev%2Fpackages-blue)](https://pi.dev/packages) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
+**为 [pi coding agent](https://pi.dev) 打造的研究记忆与实验追踪扩展。**
+`pi-memento` 为 LLM agent 提供分层外部记忆：事实账本（`runs.csv`）、带预测的受控
+对照（`contrasts.csv`）、含更新规则的假设账本（`hypotheses.md`），以及冷记忆归档
+召回 —— 让陈旧笔记永远不会污染下一次决策。安装命令：`pi install npm:pi-memento`。
 
 本项目是 [Memento-skill](https://github.com/waterdrop26651/Memento-skill)（MIT，作者 waterdrop26651）的 pi 原生移植版，重构为纯 pi **扩展**：脚手架命令、agent 可调用的工具、tracker 校验，以及按需加载的完整方法论 —— 无 skill、无 Python、无额外运行时。
 
