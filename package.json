@@ -1,6 +1,6 @@
 {
   "name": "pi-memento",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Research memory extension for the pi coding agent: layered experiment tracking (runs/contrasts/hypotheses ledgers), tracker scaffolding, validation, cold-memory archive recall, and an on-demand methodology guide for LLM agents.",
   "type": "module",
   "license": "MIT",
