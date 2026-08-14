@@ -5,9 +5,13 @@
  * controlled contrasts, hypothesis ledgers, and indexed cold-memory archives.
  *
  * Commands:
- *   /memento init [dir] [--full]  scaffold a tracker (never overwrites)
- *   /memento validate [dir]       validate a tracker directory
- *   /memento status [dir]         show memory layers and ledger sizes
+ *   /memento init [dir] [--full] [--root]  scaffold a tracker (never overwrites)
+ *   /memento validate [dir]                validate a tracker directory
+ *   /memento status [dir]                  show memory layers and ledger sizes
+ *
+ * Trackers live in a `memento/` subdirectory by default, so project roots
+ * stay clean. Detection also recognizes root-level (legacy) trackers and
+ * `experiment_tracker/` / `tracker/` subdirectories.
  *
  * Agent tools:
  *   memento_init, memento_validate, memento_status, memento_guide
@@ -18,7 +22,7 @@
 
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -270,6 +274,35 @@ function hasTracker(dir: string): boolean {
   );
 }
 
+/** Default subdirectory that keeps project roots clean. */
+const TRACKER_DIR_NAME = "memento";
+const TRACKER_SUBDIR_CANDIDATES = [TRACKER_DIR_NAME, "experiment_tracker", "tracker"];
+
+/**
+ * Locate the tracker directory for a project directory: the project root
+ * itself first (legacy layout), then known subdirectories. Returns undefined
+ * when no tracker exists.
+ */
+function findTrackerDir(dir: string): string | undefined {
+  const root = resolve(dir);
+  if (hasTracker(root)) return root;
+  for (const sub of TRACKER_SUBDIR_CANDIDATES) {
+    const candidate = join(root, sub);
+    if (existsSync(candidate) && hasTracker(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * Where init scaffolds: `<dir>/memento` by default, or `dir` itself when
+ * --root is given or the target is already named `memento`.
+ */
+function initTargetDir(dir: string, atRoot: boolean): string {
+  const root = resolve(dir);
+  if (atRoot || basename(root) === TRACKER_DIR_NAME) return root;
+  return join(root, TRACKER_DIR_NAME);
+}
+
 function formatStatus(status: StatusResult): string {
   if (!status.exists) {
     return `No memento tracker found in ${status.dir}. Run "/memento init" to create one.`;
@@ -301,6 +334,13 @@ function resolveDir(params: { dir?: string }, ctx: ExtensionContext): string {
   return params.dir ? resolve(ctx.cwd, params.dir) : ctx.cwd;
 }
 
+/** Resolve the directory for read operations (validate/status): an explicit
+ * dir wins; otherwise auto-locate the tracker (root or known subdirs). */
+function resolveReadDir(params: { dir?: string }, ctx: ExtensionContext): string {
+  const base = resolveDir(params, ctx);
+  return findTrackerDir(base) ?? base;
+}
+
 // ---------------------------------------------------------------------------
 // Extension entry
 // ---------------------------------------------------------------------------
@@ -309,16 +349,19 @@ export default function (pi: ExtensionAPI) {
   // When the project has a memento tracker, remind the agent of the reading
   // order and tooling. Keeps stale fragments out of the default context.
   pi.on("before_agent_start", async (event, ctx) => {
-    if (!hasTracker(ctx.cwd)) return;
+    const trackerDir = findTrackerDir(ctx.cwd);
+    if (!trackerDir) return;
+    const rel = relative(ctx.cwd, trackerDir).replace(/\\/g, "/");
+    const prefix = rel === "" || rel === "." ? "" : `${rel}/`;
     return {
       systemPrompt:
         event.systemPrompt +
-        "\n\nThis project contains a memento experiment tracker. Read order: CURRENT_STATE.md -> ACTIVE_TRACKER.* -> EVIDENCE_LOG.md -> full ledger (runs.csv, contrasts.csv, hypotheses.md) only as needed. Do not read archive/ by default. Use memento_status to inspect layers, memento_guide for the methodology, and memento_validate after editing tracker files. Record facts in runs.csv, predictions and outcomes in contrasts.csv, beliefs in hypotheses.md; never treat stale notes as current facts.",
+        `\n\nThis project contains a memento experiment tracker in \`${prefix === "" ? "." : prefix}\`. Read order: ${prefix}CURRENT_STATE.md -> ${prefix}ACTIVE_TRACKER.* -> ${prefix}EVIDENCE_LOG.md -> full ledger (${prefix}runs.csv, ${prefix}contrasts.csv, ${prefix}hypotheses.md) only as needed. Do not read ${prefix}archive/ by default. Use memento_status to inspect layers, memento_guide for the methodology, and memento_validate after editing tracker files. Record facts in runs.csv, predictions and outcomes in contrasts.csv, beliefs in hypotheses.md; never treat stale notes as current facts.`,
     };
   });
 
   pi.registerCommand("memento", {
-    description: "Memento tracker: init [dir] [--full] | validate [dir] | status [dir]",
+    description: "Memento tracker: init [dir] [--full] [--root] | validate [dir] | status [dir]",
     handler: async (args, ctx) => {
       const tokens = (args ?? "").trim().split(/\s+/).filter(Boolean);
       const sub = tokens[0] ?? "status";
@@ -326,25 +369,31 @@ export default function (pi: ExtensionAPI) {
       const dir = positional[0] ? resolve(ctx.cwd, positional[0]) : ctx.cwd;
 
       if (sub === "init") {
-        const result = initTracker(dir, tokens.includes("--full"));
+        const target = initTargetDir(dir, tokens.includes("--root"));
+        const existing = findTrackerDir(dir);
+        if (existing && existing !== target) {
+          ctx.ui.notify(`memento: tracker already exists at ${existing} (nothing created)`, "warning");
+          return;
+        }
+        const result = initTracker(target, tokens.includes("--full"));
         const created = result.created.length > 0 ? `created: ${result.created.join(", ")}` : "nothing created";
         const skipped = result.skipped.length > 0 ? ` (kept existing: ${result.skipped.join(", ")})` : "";
-        ctx.ui.notify(`memento init: ${created}${skipped}`, result.created.length > 0 ? "info" : "warning");
+        ctx.ui.notify(`memento init ${result.dir}: ${created}${skipped}`, result.created.length > 0 ? "info" : "warning");
         return;
       }
 
       if (sub === "validate") {
-        const result = await validateTrackerDir(dir);
+        const result = await validateTrackerDir(findTrackerDir(dir) ?? dir);
         ctx.ui.notify(result.output || (result.ok ? "tracker validation passed" : "validation failed"), result.ok ? "info" : "error");
         return;
       }
 
       if (sub === "status") {
-        ctx.ui.notify(formatStatus(trackerStatus(dir)), "info");
+        ctx.ui.notify(formatStatus(trackerStatus(findTrackerDir(dir) ?? dir)), "info");
         return;
       }
 
-      ctx.ui.notify('Usage: /memento init [dir] [--full] | /memento validate [dir] | /memento status [dir]', "warning");
+      ctx.ui.notify('Usage: /memento init [dir] [--full] [--root] | /memento validate [dir] | /memento status [dir]', "warning");
     },
   });
 
@@ -352,13 +401,24 @@ export default function (pi: ExtensionAPI) {
     name: "memento_init",
     label: "Memento Init",
     description:
-      "Scaffold a memento experiment tracker (runs.csv, contrasts.csv, hypotheses.md; with full=true also CURRENT_STATE.md, ACTIVE_TRACKER.csv, EVIDENCE_LOG.md, ARCHIVE_INDEX.md, archive/, RECALL_NOTES/). Never overwrites existing files.",
+      "Scaffold a memento experiment tracker in a `memento/` subdirectory (keeps the project root clean; pass root=true for a root-level tracker). Core files: runs.csv, contrasts.csv, hypotheses.md; with full=true also CURRENT_STATE.md, ACTIVE_TRACKER.csv, EVIDENCE_LOG.md, ARCHIVE_INDEX.md, archive/, RECALL_NOTES/. Never overwrites existing files.",
     parameters: Type.Object({
-      dir: Type.Optional(Type.String({ description: "Target directory (default: current working directory)" })),
+      dir: Type.Optional(Type.String({ description: "Target project directory (default: current working directory)" })),
       full: Type.Optional(Type.Boolean({ description: "Also scaffold the layered hot/cold memory layout (default: false)" })),
+      root: Type.Optional(Type.Boolean({ description: "Scaffold directly in the target directory instead of a memento/ subdirectory (default: false)" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = initTracker(resolveDir(params, ctx), params.full === true);
+      const base = resolveDir(params, ctx);
+      const target = initTargetDir(base, params.root === true);
+      const existing = findTrackerDir(base);
+      if (existing && existing !== target) {
+        return textResult(`memento: tracker already exists at ${existing}; nothing created. Use memento_status to inspect it.`, {
+          dir: existing,
+          created: [],
+          skipped: [],
+        });
+      }
+      const result = initTracker(target, params.full === true);
       const lines = [
         `memento tracker scaffold in ${result.dir}`,
         result.created.length > 0 ? `created: ${result.created.join(", ")}` : "nothing created",
@@ -376,10 +436,10 @@ export default function (pi: ExtensionAPI) {
     description:
       "Validate a memento tracker directory (runs.csv, contrasts.csv, hypotheses.md schema, cross-references, hypothesis markers). Run after editing tracker files.",
     parameters: Type.Object({
-      dir: Type.Optional(Type.String({ description: "Tracker directory (default: current working directory)" })),
+      dir: Type.Optional(Type.String({ description: "Tracker or project directory (default: current working directory; auto-locates memento/ subdirectories)" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await validateTrackerDir(resolveDir(params, ctx));
+      const result = await validateTrackerDir(resolveReadDir(params, ctx));
       return textResult(result.output || (result.ok ? "tracker validation passed" : "validation failed"), {
         dir: result.dir,
         ok: result.ok,
@@ -393,10 +453,10 @@ export default function (pi: ExtensionAPI) {
     description:
       "Report which memento memory layers exist in a directory (hot path, full ledger, cold memory) and ledger row counts.",
     parameters: Type.Object({
-      dir: Type.Optional(Type.String({ description: "Directory to inspect (default: current working directory)" })),
+      dir: Type.Optional(Type.String({ description: "Directory to inspect (default: current working directory; auto-locates memento/ subdirectories)" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const status = trackerStatus(resolveDir(params, ctx));
+      const status = trackerStatus(resolveReadDir(params, ctx));
       return textResult(formatStatus(status), {
         dir: status.dir,
         exists: status.exists,

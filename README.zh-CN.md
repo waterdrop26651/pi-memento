@@ -47,9 +47,13 @@ pi install /path/to/pi-memento
 
 | 命令 | 作用 |
 |---|---|
-| `/memento init [dir] [--full]` | 初始化 tracker。默认只建核心文件；`--full` 追加完整的热/冷分层布局。永不覆盖已有文件。 |
-| `/memento validate [dir]` | 校验 tracker 文件（schema、交叉引用、假设标记）。 |
-| `/memento status [dir]` | 显示各记忆层的存在情况和账本行数。 |
+| `/memento init [dir] [--full] [--root]` | 在 `memento/` 子目录中初始化 tracker（保持项目根目录干净）。默认只建核心文件；`--full` 追加完整的热/冷分层布局；`--root` 改为直接在项目根目录初始化（旧版布局）。永不覆盖已有文件。 |
+| `/memento validate [dir]` | 校验 tracker 文件（schema、交叉引用、假设标记）。自动定位 tracker（根目录、`memento/`、`experiment_tracker/` 或 `tracker/`）。 |
+| `/memento status [dir]` | 显示各记忆层的存在情况和账本行数。自动定位 tracker。 |
+
+### tracker 放在哪里
+
+默认情况下，tracker 会被初始化到 `memento/` 子目录，保持项目根目录干净。会话启动时，插件会自动检测 tracker 位置——项目根目录（旧版布局）、`memento/`、`experiment_tracker/` 或 `tracker/`——并注入带正确路径前缀的阅读顺序。
 
 ### Agent 工具
 

@@ -49,5 +49,12 @@
       "./extensions"
     ],
     "image": "https://raw.githubusercontent.com/waterdrop26651/pi-memento/main/assets/banner.jpg"
+  },
+  "scripts": {
+    "test": "tsx tests/smoke.test.mts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12",
+    "typebox": "^1.3.13"
   }
 }

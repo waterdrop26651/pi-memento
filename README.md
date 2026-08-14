@@ -57,9 +57,16 @@ pi install /path/to/pi-memento
 
 | Command | Effect |
 |---|---|
-| `/memento init [dir] [--full]` | Scaffold a tracker. Core files by default; `--full` adds the layered hot/cold layout. Never overwrites. |
-| `/memento validate [dir]` | Validate tracker files (schema, cross-references, hypothesis markers). |
-| `/memento status [dir]` | Show which memory layers exist and ledger row counts. |
+| `/memento init [dir] [--full] [--root]` | Scaffold a tracker in a `memento/` subdirectory (keeps the project root clean). Core files by default; `--full` adds the layered hot/cold layout; `--root` scaffolds at the project root instead (legacy layout). Never overwrites. |
+| `/memento validate [dir]` | Validate tracker files (schema, cross-references, hypothesis markers). Auto-locates the tracker (root, `memento/`, `experiment_tracker/`, or `tracker/`). |
+| `/memento status [dir]` | Show which memory layers exist and ledger row counts. Auto-locates the tracker. |
+
+### Where trackers live
+
+By default, trackers are scaffolded into a `memento/` subdirectory so the
+project root stays clean. When a session starts, the extension auto-detects
+the tracker — in the project root (legacy), `memento/`, `experiment_tracker/`,
+or `tracker/` — and injects the read order with the correct path prefix.
 
 ### Agent tools
 
